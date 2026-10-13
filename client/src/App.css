@@ -1,0 +1,10 @@
+body {
+  background-color: rgb(251, 251, 251);
+}
+
+@media (max-width: 767px) {
+  body {
+    padding-right: 5px;
+    padding-left: 5px;
+  }
+}
