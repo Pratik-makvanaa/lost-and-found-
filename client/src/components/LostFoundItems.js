@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import config from "./config";
 import Spinner from "./Spinner";
+import { validateContactDetails } from "../utils/validation";
 
 const Base_URL = config.baseURL;
 
@@ -10,6 +11,7 @@ const LostItems = (props) => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const [userName, setUserName] = useState("");
   const [userMobile, setUserMobile] = useState("");
@@ -65,10 +67,12 @@ const LostItems = (props) => {
   };
 
   const handleHelp = () => {
+    setSubmitError("");
     setIsModalOpen(true);
   };
 
   const handleClaim = () => {
+    setSubmitError("");
     setIsModalOpen(true);
   };
 
@@ -77,6 +81,12 @@ const LostItems = (props) => {
   };
 
   const handleSubmitHelp = async (_id) => {
+    const validationError = validateContactDetails(userName, userMobile, userHostel);
+    if (validationError) {
+      setSubmitError(validationError);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -96,17 +106,34 @@ const LostItems = (props) => {
       alert("Item has been successfully removed!");
     } catch (error) {
       console.error("Error submitting help:", error);
+      const validationErrors = error.response?.data?.errors;
+      setSubmitError(
+        validationErrors?.map(({ msg }) => msg).join(" ") ||
+          error.response?.data?.message ||
+          "Could not submit your offer to help. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSubmitClaim = async (_id) => {
+    const validationError = validateContactDetails(userName, userMobile, userHostel);
+    if (validationError) {
+      setSubmitError(validationError);
+      return;
+    }
+    if (!proofOfClaim.trim()) {
+      setSubmitError("Proof of claim is required.");
+      return;
+    }
+
     setIsLoading(true);
+    setSubmitError("");
 
     try {
       if (!proofOfClaim) {
-        alert("Please provide proof of claim.");
+        setSubmitError("Please provide proof of claim.");
         return;
       }
 
@@ -127,6 +154,12 @@ const LostItems = (props) => {
       alert("Item has been successfully removed!");
     } catch (error) {
       console.error("Error submitting claim:", error);
+      const validationErrors = error.response?.data?.errors;
+      setSubmitError(
+        validationErrors?.map(({ msg }) => msg).join(" ") ||
+          error.response?.data?.message ||
+          "Could not submit your claim. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -167,6 +200,11 @@ const LostItems = (props) => {
               &times;
             </span>
             <h3>Enter Your Information</h3>
+            {submitError && (
+              <p role="alert" style={{ color: "#b42318" }}>
+                {submitError}
+              </p>
+            )}
             <input
               type="text"
               placeholder="Name"
@@ -183,7 +221,7 @@ const LostItems = (props) => {
             />
             <input
               type="text"
-              placeholder="Hostel Name"
+              placeholder="Hostel name or place name"
               style={inputStyle}
               value={userHostel}
               onChange={(e) => setUserHostel(e.target.value)}

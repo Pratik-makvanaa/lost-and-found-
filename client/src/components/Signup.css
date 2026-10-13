@@ -51,3 +51,8 @@ textarea {
 .submit-button:hover {
   background-color: #0056b3;
 }
+
+.form-error {
+  color: #b42318;
+  margin: 0 0 1rem;
+}

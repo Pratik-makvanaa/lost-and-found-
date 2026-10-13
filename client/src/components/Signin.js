@@ -7,6 +7,7 @@ import config from "./config";
 import { useDispatch } from "react-redux";
 import { login } from "../utils/userSlice";
 import Spinner from "./Spinner"; // Assuming you have a Spinner component
+import { validateEmail } from "../utils/validation";
 
 const Base_URL = config.baseURL;
 
@@ -16,6 +17,7 @@ function Signin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false); // State for loading indicator
+  const [formError, setFormError] = useState("");
 
   const handleNavigateToSignUp = () => {
     navigate("/sign-up");
@@ -31,6 +33,18 @@ function Signin() {
 
   const handleSignIn = async (e) => {
     e.preventDefault();
+    setFormError("");
+
+    const emailError = validateEmail(email);
+    if (emailError) {
+      setFormError(emailError);
+      return;
+    }
+    if (!password) {
+      setFormError("Password is required.");
+      return;
+    }
+
     setLoading(true); // Set loading state to true when starting sign-in
 
     const data = {
@@ -42,12 +56,6 @@ function Signin() {
       const res = await axios.post(`${Base_URL}/login`, data, {
         withCredentials: true,
       });
-
-      if (res.status === 401) {
-        alert("Invalid Credentials");
-      } else if (res.status === 500) {
-        alert("Internal Server Error");
-      }
 
       const token = res.data.token;
 
@@ -62,7 +70,12 @@ function Signin() {
       navigate("/home");
     } catch (error) {
       console.error("Error during login:", error);
-      alert("Wrong Credentials. Please try again.");
+      setFormError(
+        error.response?.status === 401
+          ? "Email or password is incorrect."
+          : error.response?.data?.errors?.map(({ msg }) => msg).join(" ") ||
+              "Could not sign in. Please try again."
+      );
     } finally {
       setLoading(false); // Set loading state to false after login attempt completes
     }
@@ -73,42 +86,46 @@ function Signin() {
       <Navbar />
       <div className="signin-container">
         <h2>Sign In</h2>
-        <div className="form-group">
-          <label htmlFor="email">Email:</label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={email}
-            onChange={handleEmailChange}
-            placeholder="Enter your email"
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="password">Password:</label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            value={password}
-            onChange={handlePasswordChange}
-            placeholder="Enter your password"
-          />
-        </div>
-        <div>
-          <button
-            className="btn-signin"
-            onClick={handleSignIn}
-            disabled={loading}
-          >
-            {loading ? <Spinner /> : "Sign In"}{" "}
-            {/* Show Spinner component when loading */}
-          </button>
-          <p className="btn-spread">Not a member?</p>
-          <button className="btn-signin" onClick={handleNavigateToSignUp}>
-            Sign Up
-          </button>
-        </div>
+        <form onSubmit={handleSignIn} noValidate>
+          {formError && (
+            <p role="alert" className="form-error">
+              {formError}
+            </p>
+          )}
+          <div className="form-group">
+            <label htmlFor="email">Email:</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={email}
+              onChange={handleEmailChange}
+              placeholder="Enter your email"
+              autoComplete="email"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="password">Password:</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={password}
+              onChange={handlePasswordChange}
+              placeholder="Enter your password"
+              autoComplete="current-password"
+            />
+          </div>
+          <div>
+            <button className="btn-signin" type="submit" disabled={loading}>
+              {loading ? <Spinner /> : "Sign In"}
+            </button>
+            <p className="btn-spread">Not a member?</p>
+          </div>
+        </form>
+        <button className="btn-signin" onClick={handleNavigateToSignUp}>
+          Sign Up
+        </button>
       </div>
     </>
   );

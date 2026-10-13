@@ -1,7 +1,6 @@
 // config.js
 
-// const baseURL = 'http://localhost:5000';
-const baseURL = "https://lostandfoundbackend-y9qs.onrender.com";
+const baseURL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 const config = {
   baseURL,
 };

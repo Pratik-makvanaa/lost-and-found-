@@ -56,6 +56,8 @@ function LostAndFoundForm() {
   const [itemname, setItemName] = useState("");
   const [itemdescription, setItemDescription] = useState("");
   const [concerntype, setConcernType] = useState("lost");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const convertToBase64 = (e) => {
     const files = Array.from(e.target.files);
@@ -92,8 +94,12 @@ function LostAndFoundForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitError("");
 
-    console.log("Images:", images);
+    if (!userId) {
+      setSubmitError("Please sign in again before submitting a concern.");
+      return;
+    }
 
     const data = {
       itemname: itemname,
@@ -103,6 +109,7 @@ function LostAndFoundForm() {
     };
 
     try {
+      setIsSubmitting(true);
       await axios.post(`${Base_URL}/item/${userId}`, data);
       setItemName("");
       setItemDescription("");
@@ -114,6 +121,14 @@ function LostAndFoundForm() {
       navigate("/my-items/");
     } catch (error) {
       console.error("Error submitting item:", error);
+      const validationErrors = error.response?.data?.errors;
+      setSubmitError(
+        validationErrors?.map(({ msg }) => msg).join(" ") ||
+          error.response?.data?.message ||
+          "Could not submit your concern. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -123,6 +138,11 @@ function LostAndFoundForm() {
       <div className="lost-and-found-form">
         <h2>Report Lost or Found Item</h2>
         <form onSubmit={handleSubmit}>
+          {submitError && (
+            <p className="form-error" role="alert">
+              {submitError}
+            </p>
+          )}
           <div className="form-group">
             <label htmlFor="itemname">Item Name:</label>
             <input
@@ -131,6 +151,8 @@ function LostAndFoundForm() {
               name="itemname"
               value={itemname}
               onChange={handleItemNameChange}
+              minLength={3}
+              maxLength={100}
               required
             />
           </div>
@@ -141,6 +163,8 @@ function LostAndFoundForm() {
               name="itemdescription"
               value={itemdescription}
               onChange={handleItemDescriptionChange}
+              minLength={10}
+              maxLength={1000}
               required
             />
           </div>
@@ -188,9 +212,9 @@ function LostAndFoundForm() {
           <button
             className="submit-button"
             type="submit"
-            onClick={handleSubmit}
+            disabled={isSubmitting}
           >
-            Submit
+            {isSubmitting ? "Submitting..." : "Submit"}
           </button>
         </form>
       </div>

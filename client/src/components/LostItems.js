@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import config from "./config";
+import { validateContactDetails } from "../utils/validation";
 
 const Base_URL = config.baseURL;
 
@@ -12,7 +13,8 @@ const LostItems = (props) => {
   const [userName, setUserName] = useState("");
   const [userMobile, setUserMobile] = useState("");
   const [userHostel, setUserHostel] = useState("");
-  const [proofOfClaim, setProofOfClaim] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const boxStyle = {
     border: "1px solid #ccc",
@@ -67,14 +69,23 @@ const LostItems = (props) => {
   };
 
   const handleHelp = () => {
+    setSubmitError("");
     setIsModalOpen(true);
   };
 
-  const closeModal = async () => {
+  const closeModal = () => {
     setIsModalOpen(false);
   };
 
-  const handleSubmitHelp = async (_id) => {
+  const handleSubmitHelp = async () => {
+    const validationError = validateContactDetails(userName, userMobile, userHostel);
+    if (validationError) {
+      setSubmitError(validationError);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError("");
     const data = {
       helpername: userName,
       mobilenumber: userMobile,
@@ -82,13 +93,22 @@ const LostItems = (props) => {
       itemdetails: `${item.itemname} - ${item.itemdescription}`,
     };
 
-    await axios.post(`${Base_URL}/helper`, data);
-    alert(
-      "Thank you for contributing to the growth of our community. We are temporarily taking this item off the portal, with the hope that your assistance may aid in returning it to its original owner."
-    );
-    await axios.delete(`${Base_URL}/helper/${_id}`);
-    closeModal();
-    alert("Item has been successfully removed!");
+    try {
+      await axios.post(`${Base_URL}/helper`, data);
+      await axios.delete(`${Base_URL}/item/${item._id}`);
+      closeModal();
+      alert("Thank you for offering to help. Your details have been submitted.");
+    } catch (error) {
+      console.error("Error submitting help:", error);
+      const validationErrors = error.response?.data?.errors;
+      setSubmitError(
+        validationErrors?.map(({ msg }) => msg).join(" ") ||
+          error.response?.data?.message ||
+          "Could not submit your offer to help. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (item.concerntype !== "lost") {
@@ -127,6 +147,7 @@ const LostItems = (props) => {
               &times;
             </span>
             <h3>Enter Your Information</h3>
+            {submitError && <p role="alert" style={{ color: "#b42318" }}>{submitError}</p>}
             <input
               type="text"
               placeholder="Name"
@@ -143,22 +164,17 @@ const LostItems = (props) => {
             />
             <input
               type="text"
-              placeholder="Hostel Name"
+              placeholder="Hostel name or place name"
               style={inputStyle}
               value={userHostel}
               onChange={(e) => setUserHostel(e.target.value)}
             />
-            {item.concerntype === "found" && (
-              <input
-                type="text"
-                placeholder="Proof of Claim"
-                style={inputStyle}
-                value={proofOfClaim}
-                onChange={(e) => setProofOfClaim(e.target.value)}
-              />
-            )}
-            <button onClick={handleSubmitHelp(item._id)} style={btnStyleSubmit}>
-              Submit Help
+            <button
+              onClick={handleSubmitHelp}
+              style={btnStyleSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Submitting..." : "Submit Help"}
             </button>
           </div>
         </div>

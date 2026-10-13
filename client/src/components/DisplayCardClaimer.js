@@ -32,7 +32,7 @@ const DisplayCardClaimer = ({ claimant, number }) => {
         <strong>Mobile Number:</strong> {mobilenumber}
       </p>
       <p>
-        <strong>Hostel Name:</strong> {hostelname}
+        <strong>Hostel or Place:</strong> {hostelname}
       </p>
       <p>
         <strong>Proof of Claim:</strong> {proofofclaim}

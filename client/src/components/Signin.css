@@ -42,3 +42,8 @@ input {
 .btn-spread {
   margin-top: 2rem;
 }
+
+.form-error {
+  color: #b42318;
+  margin: 0 0 1rem;
+}

@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
 import config from "./config";
+import Spinner from "./Spinner";
+import { validateContactDetails } from "../utils/validation";
 
 const Base_URL = config.baseURL;
 
@@ -12,6 +14,8 @@ const FoundItems = (props) => {
   const [userMobile, setUserMobile] = useState("");
   const [userHostel, setUserHostel] = useState("");
   const [proofOfClaim, setProofOfClaim] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   if (!item || item.concerntype !== "found") {
     return null;
@@ -70,6 +74,7 @@ const FoundItems = (props) => {
   };
 
   const handleClaim = () => {
+    setSubmitError("");
     setIsModalOpen(true);
   };
 
@@ -78,8 +83,13 @@ const FoundItems = (props) => {
   };
 
   const handleSubmitClaim = async (_id) => {
-    if (!proofOfClaim) {
-      alert("Please provide proof of claim.");
+    const validationError = validateContactDetails(userName, userMobile, userHostel);
+    if (validationError) {
+      setSubmitError(validationError);
+      return;
+    }
+    if (!proofOfClaim.trim()) {
+      setSubmitError("Proof of claim is required.");
       return;
     }
 
@@ -91,16 +101,23 @@ const FoundItems = (props) => {
       itemdetails: `${item.itemname} - ${item.itemdescription}`,
     };
 
+    setIsSubmitting(true);
+    setSubmitError("");
     try {
       await axios.post(`${Base_URL}/claimant`, data);
-      alert(
-        "The item has been successfully claimed. Please ensure that you have not claimed someone else's item. If you have mistakenly done so, kindly resubmit it using the 'found' option."
-      );
       await axios.delete(`${Base_URL}/item/${_id}`);
       closeModal();
-      alert("Item has been successfully removed!");
+      alert("Claim submitted successfully. The found item has been removed.");
     } catch (error) {
       console.error("Error submitting claim:", error);
+      const validationErrors = error.response?.data?.errors;
+      setSubmitError(
+        validationErrors?.map(({ msg }) => msg).join(" ") ||
+          error.response?.data?.message ||
+          "Could not submit your claim. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -136,6 +153,11 @@ const FoundItems = (props) => {
               &times;
             </span>
             <h3>Enter Your Information</h3>
+            {submitError && (
+              <p role="alert" style={{ color: "#b42318" }}>
+                {submitError}
+              </p>
+            )}
             <input
               type="text"
               placeholder="Name"
@@ -152,7 +174,7 @@ const FoundItems = (props) => {
             />
             <input
               type="text"
-              placeholder="Hostel Name"
+              placeholder="Hostel name or place name"
               style={inputStyle}
               value={userHostel}
               onChange={(e) => setUserHostel(e.target.value)}
@@ -166,12 +188,16 @@ const FoundItems = (props) => {
                 onChange={(e) => setProofOfClaim(e.target.value)}
               />
             )}
-            <button
-              onClick={() => handleSubmitClaim(item._id)}
-              style={btnStyleSubmit}
-            >
-              Submit Claim
-            </button>
+            {isSubmitting ? (
+              <Spinner />
+            ) : (
+              <button
+                onClick={() => handleSubmitClaim(item._id)}
+                style={btnStyleSubmit}
+              >
+                Submit Claim
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -5,6 +5,7 @@ import Navbar from "./Navbar";
 import axios from "axios";
 import config from "./config";
 import Spinner from "./Spinner";
+import { validateEmail } from "../utils/validation";
 
 const Base_URL = config.baseURL;
 
@@ -17,6 +18,7 @@ function Signup() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const handleNameChange = (e) => {
     setName(e.target.value);
@@ -40,13 +42,32 @@ function Signup() {
 
   const handleSignUp = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setFormError("");
 
-    if (password !== confirmPassword) {
-      alert("Passwords do not match");
+    const emailError = validateEmail(email);
+    if (name.trim().length < 3) {
+      setFormError("Name must be at least 3 characters long.");
+      return;
+    }
+    if (!rollno.trim()) {
+      setFormError("Roll number is required.");
+      return;
+    }
+    if (emailError) {
+      setFormError(emailError);
+      return;
+    }
+    if (password.length < 6) {
+      setFormError("Password must be at least 6 characters long.");
       return;
     }
 
+    if (password !== confirmPassword) {
+      setFormError("Passwords do not match.");
+      return;
+    }
+
+    setLoading(true);
     const data = {
       username: name,
       rollno: rollno,
@@ -55,25 +76,19 @@ function Signup() {
     };
 
     try {
-      const res = await axios.post(`${Base_URL}/signup`, data);
+      await axios.post(`${Base_URL}/signup`, data);
 
-      if (res.status === 201) {
-        alert("Successfully registered, proceed to login!");
-        setLoading(false);
-        navigate("/sign-in");
-      } else {
-        alert("Registration failed. Please try again.");
-      }
+      alert("Successfully registered, proceed to login!");
+      navigate("/sign-in");
     } catch (error) {
-      if (error.response && error.response.status === 409) {
-        alert("Email already exists. Please use a different email.");
-      } else {
-        console.error(
-          "Error during signup:",
-          error.response ? error.response.data : error.message
-        );
-        alert("An error occurred during signup. Please try again.");
-      }
+      const validationErrors = error.response?.data?.errors;
+      setFormError(
+        error.response?.data?.message ||
+          validationErrors?.map(({ msg }) => msg).join(" ") ||
+          (error.response?.status === 409
+            ? "That email or roll number is already registered."
+            : "Could not create your account. Please try again.")
+      );
     } finally {
       setLoading(false); // Set loading state to false after login attempt completes
     }
@@ -84,7 +99,8 @@ function Signup() {
       <Navbar />
       <div className="card signup-card">
         <h2>Sign Up</h2>
-        <form onSubmit={handleSignUp}>
+        <form onSubmit={handleSignUp} noValidate>
+          {formError && <p role="alert" className="form-error">{formError}</p>}
           <div className="form-group">
             <label htmlFor="name">Name:</label>
             <input
@@ -93,11 +109,12 @@ function Signup() {
               name="name"
               value={name}
               onChange={handleNameChange}
+              minLength={3}
               required
             />
           </div>
           <div className="form-group">
-            <label htmlFor="name">Roll No:</label>
+            <label htmlFor="rollno">Roll No:</label>
             <input
               type="text"
               id="rollno"
@@ -115,7 +132,7 @@ function Signup() {
               name="email"
               value={email}
               onChange={handleEmailChange}
-              required
+              autoComplete="email"
             />
           </div>
           <div className="form-group">
@@ -126,6 +143,7 @@ function Signup() {
               name="password"
               value={password}
               onChange={handlePasswordChange}
+              minLength={6}
               required
             />
           </div>
@@ -143,7 +161,6 @@ function Signup() {
           <button
             className="submit-button"
             type="submit"
-            onClick={handleSignUp}
             disabled={loading}
           >
             {loading ? <Spinner /> : "Sign Up"}{" "}
