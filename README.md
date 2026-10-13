@@ -20,13 +20,7 @@ Welcome to our MERN stack application! This application is built using MongoDB, 
 
 ### Installation
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/your-mern-app.git
-   cd your-mern-app
-   ```
-
-2. Install dependencies for both the server and client:
+1. Install dependencies for both the server and client:
    ```bash
    cd server
    npm install

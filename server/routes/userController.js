@@ -22,6 +22,13 @@ const signup = async (req, res) => {
   } catch (error) {
     // Handle errors here
     console.error("Error during signup:", error);
+    if (error.code === 11000) {
+      const duplicateField = Object.keys(error.keyPattern || {})[0];
+      const message = duplicateField === "rollno"
+        ? "This roll number is already registered."
+        : "This email is already registered.";
+      return res.status(409).json({ message });
+    }
     res.status(500).send("Internal Server Error");
   }
 };

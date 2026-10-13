@@ -8,7 +8,6 @@ if (process.env.NODE_ENV !== "production") {
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const bodyParser = require("body-parser");
 const connectToMongo = require("./config/connectToMongo");
 const itemController = require("./routes/itemController");
 const userController = require("./routes/userController");
@@ -29,13 +28,19 @@ const app = express();
 
 // Configure express app
 app.use(express.json({ limit: "500mb" })); // Adjust the limit as needed based on image
-app.use(bodyParser.json({ limit: "500mb" }));
-app.use(bodyParser.urlencoded({ limit: "500mb", extended: true }));
+app.use(express.urlencoded({ limit: "500mb", extended: true }));
 app.use(cookieParser());
+
+const allowedOrigins = ["http://localhost:3000", process.env.CLIENT_ORIGIN].filter(Boolean);
 
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://yourdomain.com"],
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("Origin is not allowed by CORS"));
+    },
     credentials: true,
   })
 );
@@ -74,6 +79,6 @@ app.use(errorHandler);
 
 // Start our server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server is running on port ${PORT}`);
 });

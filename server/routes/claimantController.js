@@ -66,7 +66,7 @@ const updateClaimant = async (req, res) => {
         const deprecatedClaimant = await Claimant.findByIdAndUpdate(claimantId, {
             claimantname: claimantname,
             mobilenumber: mobilenumber,
-            claimanthostelname: hostelname,
+            hostelname: hostelname,
             proofofclaim: proofofclaim,
             itemdetails: itemdetails
 
